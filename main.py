@@ -169,7 +169,7 @@ def change_assistant_name(body: ChangeAssistantNameRequest):
 
     conn = get_connection()
     cur = conn.cursor()
-    execute(
+    cur.execute(
         "UPDATE users SET assistant_name = %s WHERE token = %s",
         (name, token),
     )
