@@ -114,7 +114,7 @@ def chat(body: ChatRequest):
 
     try:
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-2.0-flash",
             contents=f"You are an AI assistant named {assistant_name}. User says: {msg}",
         )
 
