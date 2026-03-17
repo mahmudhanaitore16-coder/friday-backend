@@ -4,11 +4,18 @@ import psycopg2
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from openai import OpenAI
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL env is missing")
+
+
+client = OpenAI(
+    api_key=os.getenv("GROQ_API_KEY"),
+    base_url="https://api.groq.com/openai/v1"
+)
 
 
 def get_connection():
@@ -26,6 +33,8 @@ app.add_middleware(
 )
 
 
+# -------- SCHEMAS --------
+
 class RegisterRequest(BaseModel):
     username: str
 
@@ -40,18 +49,25 @@ class AssistantNameRequest(BaseModel):
     assistant_name: str
 
 
+# -------- HELPERS --------
+
 def get_user_by_token(token: str):
     conn = get_connection()
     cur = conn.cursor()
+
     cur.execute(
         "SELECT id, username, assistant_name FROM users WHERE token = %s",
         (token,),
     )
     user = cur.fetchone()
+
     cur.close()
     conn.close()
+
     return user
 
+
+# -------- ROUTES --------
 
 @app.get("/")
 def root():
@@ -131,6 +147,7 @@ def change_assistant_name(body: AssistantNameRequest):
     return {"message": "assistant name updated"}
 
 
+# 🔥 CHAT (GROQ AI)
 @app.post("/chat")
 def chat(body: ChatRequest):
     token = body.token.strip()
@@ -147,7 +164,19 @@ def chat(body: ChatRequest):
     user_id = user[0]
     assistant_name = user[2] if user[2] else "Friday"
 
-    reply = f"{assistant_name}: Сен жаздың — {message}"
+    try:
+        completion = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[
+                {"role": "system", "content": f"Сенің атың {assistant_name}. Қысқа әрі түсінікті жауап бер."},
+                {"role": "user", "content": message}
+            ]
+        )
+
+        reply = completion.choices[0].message.content
+
+    except Exception as e:
+        reply = "AI жауап бере алмады"
 
     conn = get_connection()
     cur = conn.cursor()
