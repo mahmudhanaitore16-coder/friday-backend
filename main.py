@@ -6,8 +6,6 @@ from google import genai
 
 app = FastAPI()
 
-# Gemini client
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -114,7 +112,6 @@ def chat(body: ChatRequest):
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
             contents=f"You are an AI assistant named {assistant_name}. User says: {msg}",
         )
 
